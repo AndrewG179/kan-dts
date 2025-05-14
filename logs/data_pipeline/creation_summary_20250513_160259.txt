@@ -1,0 +1,1 @@
+Created time series with trend+seasonality+noise and segmented into windows
