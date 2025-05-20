@@ -1,5 +1,6 @@
 # Ignore figures
 figures/
+model/
 
 # Ignore logs and outputs
 logs/
