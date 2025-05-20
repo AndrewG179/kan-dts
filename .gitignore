@@ -1,0 +1,14 @@
+# Ignore figures
+figures/
+
+# Ignore logs and outputs
+logs/
+__pycache__/
+*.pyc
+
+# Ignore data files (optional)
+*.npy
+*.csv
+
+# Mac system files
+.DS_Store
