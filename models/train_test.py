@@ -2,7 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-def train_model(model, X_train, y_train, X_test, y_test, name="model", epochs=100, lr=0.001):
+from config.hyperparameters import (
+    EPOCHS, KAN_OPTIMIZER
+)
+
+def train_mlp(model, X_train, y_train, X_test, y_test, name="model", epochs=100, lr=0.001):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
@@ -29,4 +33,18 @@ def train_model(model, X_train, y_train, X_test, y_test, name="model", epochs=10
                 test_loss = criterion(test_output, y_test)
             print(f"[{name}] Epoch {epoch:3d} | Train Loss: {loss.item():.4f} | Test Loss: {test_loss.item():.4f}")
 
+    return model
+
+def train_kan(model, X_train, y_train, X_test, y_test):
+    """Trains a KAN model using hyperparameters from config."""
+    model.model.fit(
+        dataset={
+            'train_input': torch.tensor(X_train, dtype=torch.float32),
+            'train_label': torch.tensor(y_train, dtype=torch.float32),
+            'test_input': torch.tensor(X_test, dtype=torch.float32),
+            'test_label': torch.tensor(y_test, dtype=torch.float32)
+        },
+        opt=KAN_OPTIMIZER,
+        steps=EPOCHS,
+    )
     return model
