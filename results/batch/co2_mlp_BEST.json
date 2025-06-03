@@ -1,0 +1,17 @@
+{
+  "dataset": "co2",
+  "model": "mlp",
+  "mse": 5.410200140149444,
+  "params": {
+    "epochs": 200,
+    "hidden": [
+      128,
+      128,
+      128
+    ],
+    "lr": 0.001
+  },
+  "grid": NaN,
+  "width": NaN,
+  "k": NaN
+}

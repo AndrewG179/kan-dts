@@ -1,50 +1,42 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from config.hyperparameters import EPOCHS, KAN_OPT
 
-from config.hyperparameters import (
-    EPOCHS, KAN_OPTIMIZER
-)
-
-def train_mlp(model, X_train, y_train, X_test, y_test, name="model", epochs=100, lr=0.001):
+def train_mlp(model, Xtr, ytr, Xval, yval, *, epochs, lr):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
+    model.to(device)
+    crit = nn.MSELoss()
+    opt  = optim.Adam(model.parameters(), lr=lr)
 
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    Xtr = torch.tensor(Xtr, dtype=torch.float32, device=device)
+    ytr = torch.tensor(ytr, dtype=torch.float32, device=device).squeeze()
+    Xval= torch.tensor(Xval,dtype=torch.float32, device=device)
+    yval= torch.tensor(yval,dtype=torch.float32, device=device).squeeze()
 
-    X_train = torch.tensor(X_train, dtype=torch.float32).to(device)
-    y_train = torch.tensor(y_train, dtype=torch.float32).squeeze().to(device)
-    X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
-    y_test = torch.tensor(y_test, dtype=torch.float32).squeeze().to(device)
-
-    for epoch in range(epochs):
+    tr_losses, val_losses = [], []
+    for ep in range(epochs):
         model.train()
-        optimizer.zero_grad()
-        output = model(X_train).squeeze()
-        loss = criterion(output, y_train)
-        loss.backward()
-        optimizer.step()
+        opt.zero_grad()
+        loss = crit(model(Xtr).squeeze(), ytr)
+        loss.backward(); opt.step()
+        tr_losses.append(loss.item())
 
-        if epoch % 10 == 0 or epoch == epochs - 1:
-            model.eval()
-            with torch.no_grad():
-                test_output = model(X_test).squeeze()
-                test_loss = criterion(test_output, y_test)
-            print(f"[{name}] Epoch {epoch:3d} | Train Loss: {loss.item():.4f} | Test Loss: {test_loss.item():.4f}")
+        model.eval()
+        with torch.no_grad():
+            v = crit(model(Xval).squeeze(), yval).item()
+        val_losses.append(v)
+    return tr_losses, val_losses, model.cpu()
 
-    return model
-
-def train_kan(model, X_train, y_train, X_test, y_test):
-    """Trains a KAN model using hyperparameters from config."""
-    model.model.fit(
+def train_kan(wrapper, Xtr, ytr, Xval, yval, *, steps):
+    wrapper.model.fit(
         dataset={
-            'train_input': torch.tensor(X_train, dtype=torch.float32),
-            'train_label': torch.tensor(y_train, dtype=torch.float32),
-            'test_input': torch.tensor(X_test, dtype=torch.float32),
-            'test_label': torch.tensor(y_test, dtype=torch.float32)
+            "train_input": torch.tensor(Xtr, dtype=torch.float32),
+            "train_label": torch.tensor(ytr, dtype=torch.float32),
+            "test_input":  torch.tensor(Xval, dtype=torch.float32),
+            "test_label":  torch.tensor(yval, dtype=torch.float32)
         },
-        opt=KAN_OPTIMIZER,
-        steps=EPOCHS,
+        opt=KAN_OPT,
+        steps=steps,
     )
-    return model
+    return [], [], wrapper

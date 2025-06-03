@@ -1,0 +1,17 @@
+{
+  "dataset": "syn-season_only-0.05",
+  "model": "mlp",
+  "mse": 0.002762007700772041,
+  "params": {
+    "epochs": 100,
+    "hidden": [
+      128,
+      128,
+      128
+    ],
+    "lr": 0.001
+  },
+  "grid": NaN,
+  "width": NaN,
+  "k": NaN
+}

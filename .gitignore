@@ -13,3 +13,7 @@ __pycache__/
 
 # Mac system files
 .DS_Store
+
+# Ignore model outputs
+*.pt
+*.pkl
