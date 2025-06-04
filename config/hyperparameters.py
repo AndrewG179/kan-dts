@@ -4,28 +4,28 @@ PRED_LEN   = 14
 EPOCHS     = 200
 LR         = 1e-3
 
-# final production architectures
-MLP_WIDTH  = [INPUT_LEN, 128, 128, 128, PRED_LEN]
-KAN_WIDTH  = [INPUT_LEN,   5,   5, PRED_LEN]
-KAN_GRID   = 5
-KAN_K      = 3           # spline order
-KAN_OPT    = "LBFGS"
+KAN_OPT="Adam"
 
 # ---------- search spaces ----------
 from sklearn.model_selection import ParameterGrid
 
 MLP_SEARCH = ParameterGrid({
-    "hidden": [[64,64], [128,128,128]],
+    "hidden": [
+        [64,64],
+        [128,128,128]
+    ],
     "lr":     [1e-3, 1e-4],
     "epochs": [100, 200],
 })
 
 KAN_SEARCH = ParameterGrid({
     "grid":  [5, 10],
-    "width": [
-        [INPUT_LEN, 5,  5,  PRED_LEN],
-        [INPUT_LEN, 10, 10, PRED_LEN]
+    "hidden": [
+        [10],
+        [5,  5],
+        [10, 10]
     ],
+    "epochs": [100],
     "k":     [3],
     "opt":   ["Adam"],
 })

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from config.hyperparameters import EPOCHS, KAN_OPT
+from config.hyperparameters import KAN_OPT
 
 def train_mlp(model, Xtr, ytr, Xval, yval, *, epochs, lr):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,15 +28,12 @@ def train_mlp(model, Xtr, ytr, Xval, yval, *, epochs, lr):
         val_losses.append(v)
     return tr_losses, val_losses, model.cpu()
 
-def train_kan(wrapper, Xtr, ytr, Xval, yval, *, steps):
-    wrapper.model.fit(
-        dataset={
-            "train_input": torch.tensor(Xtr, dtype=torch.float32),
-            "train_label": torch.tensor(ytr, dtype=torch.float32),
-            "test_input":  torch.tensor(Xval, dtype=torch.float32),
-            "test_label":  torch.tensor(yval, dtype=torch.float32)
-        },
-        opt=KAN_OPT,
-        steps=steps,
-    )
-    return [], [], wrapper
+def train_kan(model, Xtr, ytr, Xval, yval, *, steps):
+    dataset = {
+        "train_input": torch.tensor(Xtr, dtype=torch.float32),
+        "train_label": torch.tensor(ytr, dtype=torch.float32),
+        "test_input":  torch.tensor(Xval, dtype=torch.float32),
+        "test_label":  torch.tensor(yval, dtype=torch.float32)
+    }
+    model.fit(dataset=dataset, opt=KAN_OPT, steps=steps, lr=0.01)
+    return [], [], model

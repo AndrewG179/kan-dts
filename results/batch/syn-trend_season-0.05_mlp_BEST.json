@@ -1,16 +1,13 @@
 {
   "dataset": "syn-trend_season-0.05",
   "model": "mlp",
-  "mse": 2.9367344458850733,
+  "mse": 1327.7449716438762,
   "params": {
-    "epochs": 200,
+    "epochs": 100,
     "hidden": [
       64,
       64
     ],
-    "lr": 0.001
-  },
-  "grid": NaN,
-  "width": NaN,
-  "k": NaN
+    "lr": 0.0001
+  }
 }

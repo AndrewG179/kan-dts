@@ -2,7 +2,6 @@ from pathlib import Path
 import json
 import numpy as np
 import pandas as pd
-
 from sklearn.metrics import mean_squared_error
 from config.hyperparameters import (
     INPUT_LEN, PRED_LEN, MLP_SEARCH, KAN_SEARCH
@@ -13,9 +12,11 @@ from data_pipeline.data_creation import load_synthetic
 from data_pipeline.preprocessing import create_windows
 from data_pipeline.splits import chronological_split
 from models.mlp_model import MLP
-from models.kan_model import KANWrapper
+from kan import KAN
 from models.train_test import train_mlp, train_kan
 import torch 
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 # ---------- helpers ---------------------------------------------------------
@@ -30,16 +31,23 @@ def _load_dataset(name: str):
     return load_synthetic(kind=kind, noise_std=float(noise))
 
 
-def _split(X, y):
-    return chronological_split(X, y)
+def _evaluate(model, X_te, y_te, y_mean, y_std):
+    if hasattr(model, "eval") and callable(model.eval):
+        model.eval()
 
-
-def _evaluate(model, X_te, y_te):
-    model.eval()
     with torch.no_grad():
         preds = model(torch.as_tensor(X_te, dtype=torch.float32)).cpu().numpy()
+    preds = preds * y_std + y_mean
     return mean_squared_error(y_te.squeeze(), preds.squeeze())
 
+def save_kan_activations(kan_model, save_path: Path):
+    kan_model.plot(
+        folder=str(save_path),
+        beta=3.0,
+        scale=0.5,
+        varscale=1.0
+    )
+    
 
 # ---------- main loop -------------------------------------------------------
 def main():
@@ -56,17 +64,23 @@ def main():
     for ds_name in datasets:
         df = _load_dataset(ds_name)
         X, y = create_windows(df, input_len=INPUT_LEN, pred_len=PRED_LEN)
-
+        X_mean = X.mean(axis=0) # added normalization to combat NaN's by Adam, I suspect there was something wrong with the gradients
+        X_std = X.std(axis=0) + 1e-6
+        X = (X - X_mean) / X_std
+        y_mean = y.mean()
+        y_std = y.std() + 1e-6
+        y = (y - y_mean) / y_std
         # ---------- MLP sweep ----------
         for hp in MLP_SEARCH:
-            (X_tr, y_tr), (X_val, y_val), (X_te, y_te) = _split(X, y)
+            (X_tr, y_tr), (X_val, y_val), (X_te, y_te) = chronological_split(X, y)
 
             mlp = MLP([INPUT_LEN, *hp["hidden"], PRED_LEN])
+            print(f"Running {ds_name} | mlp | {hp}")
             _, _, trained = train_mlp(
                 mlp, X_tr, y_tr, X_val, y_val,
                 epochs=hp["epochs"], lr=hp["lr"]
             )
-            mse = _evaluate(trained, X_te, y_te)
+            mse = _evaluate(trained, X_te, y_te, y_mean, y_std)
 
             rows.append({
                 "dataset": ds_name,
@@ -77,24 +91,33 @@ def main():
 
         # ---------- KAN sweep ----------
         for hp in KAN_SEARCH:
-            (X_tr, y_tr), (X_val, y_val), (X_te, y_te) = _split(X, y)
+            (X_tr, y_tr), (X_val, y_val), (X_te, y_te) = chronological_split(X, y)
 
-            kan = KANWrapper(width=hp["width"],
-                             grid=hp["grid"],
-                             k=hp["k"])
+            kan = KAN(
+                width=[INPUT_LEN, *hp["hidden"], PRED_LEN],
+                grid=hp["grid"],
+                k=hp["k"],
+                symbolic_enabled=False
+            )
+            print(f"Running {ds_name} | kan | {hp}")
             _, _, trained = train_kan(
                 kan, X_tr, y_tr, X_val, y_val,
-                steps=20
+                steps=hp["epochs"]
             )
-            mse = _evaluate(trained, X_te, y_te)
+            trained.prune()
+            #------------Saving splines (takes a lot of time)--------------
+            # hp_str = f"epochs_{hp['epochs']}_grid_{hp['grid']}_k_{hp['k']}_hidden_" + "_".join(map(str, hp['hidden']))
+            # save_path = out_dir / "activations" / ds_name / hp_str
+            # save_path.mkdir(parents=True, exist_ok=True)
+            # save_kan_activations(trained, save_path)
+
+            mse = _evaluate(trained, X_te, y_te, y_mean, y_std)
 
             rows.append({
                 "dataset": ds_name,
                 "model":   "kan",
                 "mse":     mse,
-                "grid":    hp["grid"],
-                "width":   hp["width"],
-                "k":       hp["k"]
+                "params":  hp
             })
 
     # ---------- save structured results -------------------------------------
@@ -106,7 +129,6 @@ def main():
         best = grp.sort_values("mse").iloc[0].to_dict()
         with open(out_dir / f"{ds}_{mdl}_BEST.json", "w") as f:
             json.dump(best, f, indent=2)
-    import matplotlib.pyplot as plt
 
     # 1) BEST result per (dataset, model)  ────────────────────────────────
     best_df = (
@@ -116,8 +138,8 @@ def main():
           .sort_index()               # keep datasets in alpha order
     )
 
-    ax = best_df.plot(kind="bar", rot=45)
-    ax.set_ylabel("Test MSE  ↓ better")
+    ax = best_df.plot(kind="bar", rot=45, log=True)
+    ax.set_ylabel("Val MSE  ↓ better")
     ax.set_title("KAN vs MLP — best result on every dataset")
     plt.tight_layout()
     plt.savefig(out_dir / "grid_results_best.png", dpi=300)
@@ -128,14 +150,33 @@ def main():
     for model in df["model"].unique():
         subset = df[df["model"] == model]
         ax.scatter(subset["dataset"], subset["mse"],
-                   label=model, alpha=0.6, s=40)
+                label=model, alpha=0.6, s=40)
 
-    ax.set_ylabel("Test MSE")
+    ax.set_ylabel("Val MSE")
     ax.set_title("All hyper-parameter sweeps")
+    ax.set_yscale("log")
     ax.legend(title="Model")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.savefig(out_dir / "grid_results_all.png", dpi=300)
+    plt.close()
+
+    ratio = (
+        best_df["kan"] / best_df["mlp"]
+    ).rename("KAN ÷ MLP")
+
+    plt.figure(figsize=(6, len(ratio) * 0.4))
+    sns.heatmap(
+        ratio.to_frame().T,
+        annot=True,
+        fmt=".2f",
+        cmap="RdYlGn_r",
+        cbar=False
+    )
+    plt.yticks(rotation=0)
+    plt.title("Relative val MSE (KAN ÷ MLP)")
+    plt.tight_layout()
+    plt.savefig(out_dir / "grid_results_ratio_heatmap.png", dpi=300)
     plt.close()
 
 

@@ -1,17 +1,14 @@
 {
   "dataset": "daily_temp",
   "model": "mlp",
-  "mse": 7.528949342047476,
+  "mse": 125.51636959173301,
   "params": {
-    "epochs": 200,
+    "epochs": 100,
     "hidden": [
       128,
       128,
       128
     ],
-    "lr": 0.001
-  },
-  "grid": NaN,
-  "width": NaN,
-  "k": NaN
+    "lr": 0.0001
+  }
 }
