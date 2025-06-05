@@ -1,14 +1,18 @@
 {
   "dataset": "daily_temp",
   "model": "kan",
-  "mse": 129.14792008985313,
+  "mse": 119.6830929464236,
   "params": {
-    "epochs": 100,
-    "grid": 5,
+    "epochs": 20,
+    "grid": 10,
     "hidden": [
-      10
+      5,
+      5
     ],
     "k": 3,
+    "lamb_entropy": 0.0,
+    "lamb_l1": 0.0,
+    "lr": 0.001,
     "opt": "Adam"
   }
 }

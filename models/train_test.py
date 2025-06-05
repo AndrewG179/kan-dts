@@ -28,12 +28,19 @@ def train_mlp(model, Xtr, ytr, Xval, yval, *, epochs, lr):
         val_losses.append(v)
     return tr_losses, val_losses, model.cpu()
 
-def train_kan(model, Xtr, ytr, Xval, yval, *, steps):
+def train_kan(model, Xtr, ytr, Xval, yval, *, steps, lr, lamb_l1, lamb_entropy):
     dataset = {
         "train_input": torch.tensor(Xtr, dtype=torch.float32),
         "train_label": torch.tensor(ytr, dtype=torch.float32),
         "test_input":  torch.tensor(Xval, dtype=torch.float32),
         "test_label":  torch.tensor(yval, dtype=torch.float32)
     }
-    model.fit(dataset=dataset, opt=KAN_OPT, steps=steps, lr=0.01)
+    model.fit(
+        dataset=dataset,
+        opt=KAN_OPT,
+        steps=steps,
+        lr=lr,
+        lamb_l1=lamb_l1,
+        lamb_entropy=lamb_entropy
+    )
     return [], [], model

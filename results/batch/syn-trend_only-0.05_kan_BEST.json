@@ -1,15 +1,18 @@
 {
   "dataset": "syn-trend_only-0.05",
   "model": "kan",
-  "mse": 1299.391349029772,
+  "mse": 811.0758666867905,
   "params": {
-    "epochs": 100,
+    "epochs": 20,
     "grid": 10,
     "hidden": [
-      10,
-      10
+      5,
+      5
     ],
     "k": 3,
+    "lamb_entropy": 0.0,
+    "lamb_l1": 0.0,
+    "lr": 0.001,
     "opt": "Adam"
   }
 }

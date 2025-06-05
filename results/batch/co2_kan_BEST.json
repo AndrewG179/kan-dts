@@ -1,15 +1,18 @@
 {
   "dataset": "co2",
   "model": "kan",
-  "mse": 125227.22291371175,
+  "mse": 107835.73956598388,
   "params": {
-    "epochs": 100,
+    "epochs": 20,
     "grid": 5,
     "hidden": [
       5,
       5
     ],
     "k": 3,
+    "lamb_entropy": 0.0,
+    "lamb_l1": 0.0001,
+    "lr": 0.01,
     "opt": "Adam"
   }
 }

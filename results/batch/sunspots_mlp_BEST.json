@@ -1,7 +1,7 @@
 {
   "dataset": "sunspots",
   "model": "mlp",
-  "mse": 1231.3499296253583,
+  "mse": 1299.9269350402944,
   "params": {
     "epochs": 200,
     "hidden": [

@@ -22,10 +22,13 @@ KAN_SEARCH = ParameterGrid({
     "grid":  [5, 10],
     "hidden": [
         [10],
-        [5,  5],
+        [5, 5],
         [10, 10]
     ],
-    "epochs": [100],
+    "epochs": [20],
     "k":     [3],
     "opt":   ["Adam"],
+    "lr":    [1e-2, 1e-3],
+    "lamb_l1": [0.0, 1e-4, 1e-2],
+    "lamb_entropy": [0.0, 1e-4, 1e-2],
 })

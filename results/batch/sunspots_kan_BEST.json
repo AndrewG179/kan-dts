@@ -1,15 +1,17 @@
 {
   "dataset": "sunspots",
   "model": "kan",
-  "mse": 1337.4136333742965,
+  "mse": 1285.4606183378116,
   "params": {
-    "epochs": 100,
-    "grid": 5,
+    "epochs": 20,
+    "grid": 10,
     "hidden": [
-      10,
       10
     ],
     "k": 3,
+    "lamb_entropy": 0.0001,
+    "lamb_l1": 0.0001,
+    "lr": 0.01,
     "opt": "Adam"
   }
 }
