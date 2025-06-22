@@ -1,6 +1,6 @@
 # ---------- constant values used in final experiment ----------
-INPUT_LEN  = 100
-PRED_LEN   = 14
+INPUT_LEN  = 10
+PRED_LEN   = 2
 EPOCHS     = 200
 LR         = 1e-3
 
@@ -21,14 +21,23 @@ MLP_SEARCH = ParameterGrid({
 KAN_SEARCH = ParameterGrid({
     "grid":  [5, 10],
     "hidden": [
+        [2],
         [10],
-        [5, 5],
-        [10, 10]
+        [2, 2],
+        [5, 5]
     ],
-    "epochs": [20],
+    "epochs": [100],
     "k":     [3],
     "opt":   ["Adam"],
     "lr":    [1e-2, 1e-3],
     "lamb_l1": [0.0, 1e-4, 1e-2],
     "lamb_entropy": [0.0, 1e-4, 1e-2],
+})
+
+LSTM_SEARCH = ParameterGrid({
+    "hidden_size": [32, 64],
+    "num_layers": [1],
+    "lr": [1e-3, 1e-4],
+    "epochs": [100],
+    "dropout": [0.0]
 })
