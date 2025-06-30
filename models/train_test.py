@@ -45,7 +45,7 @@ def train_mlp(model, Xtr, ytr, Xval, yval, *, epochs, lr, patience=10):
             break
     return tr_losses, val_losses, best_model
 
-def train_kan(model, Xtr, ytr, Xval, yval, *, steps, lr, lamb_l1, lamb_entropy, patience=10, eval_every=10):
+def train_kan(model, Xtr, ytr, Xval, yval, *, steps, lr, lamb_l1, lamb_entropy, patience=10):
     import numpy as np
     dataset = {
         "train_input": torch.tensor(Xtr, dtype=torch.float32),
@@ -58,19 +58,22 @@ def train_kan(model, Xtr, ytr, Xval, yval, *, steps, lr, lamb_l1, lamb_entropy, 
     val_losses = []
     tr_losses = []
     steps_no_improve = 0
-    total_steps = 0
-    for step in range(0, steps, eval_every):
-        # Fit for eval_every steps
+    
+    # Enhanced early stopping parameters
+    min_delta = 1e-6  # Minimum improvement threshold
+    
+    for step in range(steps):
+        # Fit for 1 step at a time
         model.fit(
             dataset=dataset,
             opt=KAN_OPT,
-            steps=eval_every,
+            steps=1,
             lr=lr,
             lamb_l1=lamb_l1,
             lamb_entropy=lamb_entropy
         )
-        total_steps += eval_every
-        # Evaluate
+        
+        # Evaluate after each step
         model.eval()
         with torch.no_grad():
             val_pred = model(torch.tensor(Xval, dtype=torch.float32)).cpu().numpy().squeeze()
@@ -81,15 +84,29 @@ def train_kan(model, Xtr, ytr, Xval, yval, *, steps, lr, lamb_l1, lamb_entropy, 
             tr_true = np.array(ytr).squeeze()
             tr_loss = np.mean((tr_pred - tr_true) ** 2)
             tr_losses.append(tr_loss)
-        if val_loss < best_val_loss:
+            
+        # Enhanced early stopping logic with minimum improvement threshold
+        if val_loss < best_val_loss - min_delta:
             best_val_loss = val_loss
             best_model = copy.deepcopy(model)
             steps_no_improve = 0
         else:
             steps_no_improve += 1
+            
+        # Additional overfitting detection: if validation loss increases while training loss decreases
+        if len(val_losses) >= 5:
+            recent_val_trend = np.mean(val_losses[-3:]) - np.mean(val_losses[-5:-2])
+            recent_tr_trend = np.mean(tr_losses[-3:]) - np.mean(tr_losses[-5:-2])
+            
+            # Strong overfitting signal: val loss increasing, train loss decreasing
+            if recent_val_trend > 0 and recent_tr_trend < -min_delta:
+                print(f"Overfitting detected at step {step+1} - stopping early")
+                break
+            
         if steps_no_improve >= patience:
-            print(f"Early stopping at step {total_steps}")
+            print(f"Early stopping at step {step+1}")
             break
+            
     if best_model is None:
         best_model = model
     return tr_losses, val_losses, best_model

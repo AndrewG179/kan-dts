@@ -39,5 +39,5 @@ LSTM_SEARCH = ParameterGrid({
     "num_layers": [1],
     "lr": [1e-3, 1e-4],
     "epochs": [100],
-    "dropout": [0.0]
+    "dropout": [0.0, 0.1]
 })
